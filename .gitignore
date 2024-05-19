@@ -1,4 +1,5 @@
-"__pycache__/" 
-"akshare_data/" 
-"model_weights/" 
-"prediction_eval/" 
+__pycache__/
+akshare_data/ 
+model_weights/
+prediction_eval/
+*.csv 
