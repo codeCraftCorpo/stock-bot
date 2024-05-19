@@ -1,5 +1,5 @@
 import config
-from akshares_getdata import getAkDataLoader, SpecStockData
+from akshares_getdata import getAkDataLoader, SpecStockData,getAllStocksCSV
 from model import build_stock_transformer
 from train_and_evaluate import trainModel,evaluateModel
 from visualization import writePredCsv, visualize
@@ -7,6 +7,7 @@ from pprint import pprint
 import os
 import torch
 
+'''
 Config = config.get_config()
 
 train_loader, test_loader = getAkDataLoader()
@@ -19,6 +20,6 @@ evaluateModel(test_loader,model)
 
 writePredCsv()
 
-#THIS VISUALIZES PREDICTION ON TRAIN SET, NOT JUST TEST SET
 visualize()
-
+'''
+getAllStocksCSV()

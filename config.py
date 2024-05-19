@@ -26,7 +26,7 @@ def get_ak_config():
 
     return {
 
-        "specific_stock_name":"浙能电力",
+        "specific_stock_name":"南华生物",
 
         "stockFolder":'./akshare_data/dailyStock',
 
@@ -36,7 +36,9 @@ def get_ak_config():
         "date_start" : "20100101",
         "date_end" :"20200101",
 
-        "train_test_split" : 0.8,
+        "train_test_split" : 0.5,
+
+        "generalFolder":'./akshare_data/AllStockData',
     }
 
 def get_visual_config():

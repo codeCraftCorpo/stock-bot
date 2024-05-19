@@ -65,6 +65,7 @@ def writePredCsv():
 
 
 # visualize with pyglet
+#THIS VISUALIZES PREDICTION ON TRAIN SET, NOT JUST TEST SET
 def visualize():
     data = pd.read_csv(writeFilePath)
     actual_open = data.iloc[:, 0].values
@@ -137,9 +138,9 @@ def visualize():
     def on_key_press(symbol, modifiers):
         nonlocal time_index, actual_lines, pred_lines, y_labels, x_labels
         if symbol == pyglet.window.key.RIGHT:
-            time_index = min(time_index + DAYS_STEP, len(actual_open) - VIEWPORT_DAYS)
+            time_index = min(time_index + 5*DAYS_STEP, len(actual_open) - VIEWPORT_DAYS)
         elif symbol == pyglet.window.key.LEFT:
-            time_index = max(time_index - DAYS_STEP, 0)
+            time_index = max(time_index - 5*DAYS_STEP, 0)
 
         # Update lines and labels based on the new time_index
         actual_lines, pred_lines, y_labels, x_labels = create_lines_and_labels(time_index)

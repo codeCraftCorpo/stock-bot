@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, Dataset, random_split, Subset
 import pandas as pd
 import numpy as np
 from pprint import pprint
+import re
 
 #Global Configs
 Config = config.get_config()
@@ -16,6 +17,8 @@ akConfig = config.get_ak_config()
 def makeFolders():
     if not os.path.exists(akConfig["stockFolder"]):
         os.makedirs(akConfig["stockFolder"])
+    if not os.path.exists(akConfig["generalFolder"]):
+        os.makedirs(akConfig["generalFolder"])
 makeFolders()
 
 #get stock name to symbol, symbol to name dicts into json
@@ -128,9 +131,34 @@ def getAkDataLoader():
     data = SpecStockData()
     train_size = int(akConfig["train_test_split"] * len(data))
 
-    train_dataset = Subset(data, range(train_size))
+    train_dataset = Subset(data, range(0,train_size))
     test_dataset = Subset(data, range(train_size, len(data)))
 
     train_loader = DataLoader(train_dataset, batch_size=Config["batch_size"], shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=Config["batch_size"], shuffle=False)
     return train_loader, test_loader
+
+# GENERAL SECTION: ALL STOCK DATA
+
+#write all stocks data to csv
+def getAllStocksCSV():
+    name_to_symbol, symbol_to_name = loadAkDicts()
+    stockNames = list(symbol_to_name.values())
+
+    def sanitize_filename(filename):
+        return re.sub(r'[<>:"/\\|?*]', '_', filename)
+    
+    def specificStockCSV(stockName: str):
+
+        specStockSymbol = name_to_symbol[stockName]
+        stock_data = ak.stock_zh_a_hist(symbol=specStockSymbol, period="daily", start_date=akConfig["date_start"], end_date=akConfig["date_end"], adjust="qfq")
+
+        #remove special characters in stock name to write to csv.
+        #might cause reading problems later due to dismatch from name to keys
+        sanitzedName = sanitize_filename(stockName)
+        csv_file_path = os.path.join(akConfig["generalFolder"], f"{sanitzedName}.csv")
+        stock_data.to_csv(csv_file_path, index=False)
+
+    for stock in stockNames:
+        print (f"getting stock to csv {stock}")
+        specificStockCSV(stock)
