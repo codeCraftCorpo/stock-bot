@@ -16,7 +16,7 @@ def get_config():
         "decoder_lyaer":4,
 
         "batch_size": 4,
-        "num_epochs": 20,
+        "num_epochs": 100,
         "lr": 10**-3,
         
         "transformer_model_folder": "./model_weights/StockTransformer",
@@ -37,7 +37,9 @@ def get_ak_config():
         "date_end" :"20200101",
 
         "train_test_split" : 0.8,
-
-
     }
 
+def get_visual_config():
+    return{
+        "visualFolder":"./prediction_eval",
+    }

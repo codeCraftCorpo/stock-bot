@@ -72,7 +72,9 @@ def evaluateModel (test_loader,model):
             x = model.decode(x,None,targets,tgt_mask)
             x = model.project(x)
 
+            
             loss = criterion(x, targets)
             test_loss += loss.item()
+
     average_loss = test_loss / len(test_loader)
     print(f'Test Loss: {average_loss:.4f}')

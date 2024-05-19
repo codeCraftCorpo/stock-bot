@@ -16,6 +16,7 @@ akConfig = config.get_ak_config()
 def makeFolders():
     if not os.path.exists(akConfig["stockFolder"]):
         os.makedirs(akConfig["stockFolder"])
+makeFolders()
 
 #get stock name to symbol, symbol to name dicts into json
 def getAkDicts():
@@ -50,6 +51,7 @@ def loadAkDicts():
 
 # create dataset for one stock
 # 日期    开盘    收盘    最高    最低     成交量   成交额    振幅    涨跌幅   涨跌额    换手率
+#         0       1      2       3       4        5         6      7         8       9
 
 def getSpecStockCSV():
 
@@ -67,9 +69,8 @@ def getSpecStockCSV():
 #creates Dataset from one specific stock
 
 class SpecStockData(Dataset):
-    def __init__(self):
-        makeFolders()
 
+    def __init__(self):
         csv_file_path = os.path.join(akConfig["stockFolder"], f"{akConfig['specific_stock_name']}.csv")
 
         if not os.path.exists(csv_file_path):
@@ -84,7 +85,8 @@ class SpecStockData(Dataset):
         prev = Config["prev_days"]
         post = Config["post_days"]
 
-        #step size = post
+
+
         for i in range(0,len(self.data) - prev-post, post):
             # (prev, col)
             input_prev_days = []
@@ -92,13 +94,15 @@ class SpecStockData(Dataset):
                 input_day = self.data.iloc[j,1:].values.tolist()
                 input_prev_days.append(input_day)
 
-            #Normalize each column
+            #Normalize 成交量 成交额 columns
+
             input_prev_days = np.array(input_prev_days)
 
-            means = input_prev_days.mean(axis=0)
-            stds = input_prev_days.std(axis=0)
-            input_prev_days = (input_prev_days - means) / (stds + 0.0000001)
-
+            columns_to_normalize = input_prev_days[:, 4:6]
+            means = columns_to_normalize.mean(axis=0)
+            stds = columns_to_normalize.std(axis=0)
+            normalized_columns = (columns_to_normalize - means) / (stds + 0.0000001)
+            input_prev_days[:, 4:6] = normalized_columns
             input_prev_days = input_prev_days.tolist()
 
             # （post,2)
@@ -130,6 +134,3 @@ def getAkDataLoader():
     train_loader = DataLoader(train_dataset, batch_size=Config["batch_size"], shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=Config["batch_size"], shuffle=False)
     return train_loader, test_loader
-
-
-
