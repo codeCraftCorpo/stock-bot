@@ -2,8 +2,12 @@ import torch
 import torch.nn as nn
 import math
 import inspect
-
+import config
+import os
 #CODE FROM https://github.com/hkproj/pytorch-transformer
+
+Config = config.get_config()
+modelConfig = config.get_transformer_model_config()
 
 class LayerNormalization(nn.Module):
 
@@ -301,7 +305,7 @@ class StockEmbedding(nn.Module):
 
         return x
     
-def build_stock_transformer(src_features:int ,tgt_features:int, src_seq_len: int, tgt_seq_len: int, d_model:int = 20 , N: int=3, h: int=8, dropout: float=0.1, d_ff: int=128) -> Transformer:
+def build_stock_transformer(src_features:int ,tgt_features:int, src_seq_len: int, tgt_seq_len: int, d_model:int = 20 , encoderN: int=6, decoderN: int = 6,h: int=8,  d_ff: int=128,dropout: float=0.1) -> Transformer:
     # Create the embedding layers
 
 
@@ -315,7 +319,7 @@ def build_stock_transformer(src_features:int ,tgt_features:int, src_seq_len: int
     
     # Create the encoder blocks
     encoder_blocks = []
-    for _ in range(N):
+    for _ in range(encoderN):
         encoder_self_attention_block = MultiHeadAttentionBlock(d_model, h, dropout)
         feed_forward_block = FeedForwardBlock(d_model, d_ff, dropout)
         encoder_block = EncoderBlock(d_model, encoder_self_attention_block, feed_forward_block, dropout)
@@ -323,7 +327,7 @@ def build_stock_transformer(src_features:int ,tgt_features:int, src_seq_len: int
 
     # Create the decoder blocks
     decoder_blocks = []
-    for _ in range(N):
+    for _ in range(decoderN):
         decoder_self_attention_block = MultiHeadAttentionBlock(d_model, h, dropout)
         decoder_cross_attention_block = MultiHeadAttentionBlock(d_model, h, dropout)
         feed_forward_block = FeedForwardBlock(d_model, d_ff, dropout)
@@ -346,3 +350,22 @@ def build_stock_transformer(src_features:int ,tgt_features:int, src_seq_len: int
             nn.init.xavier_uniform_(p)
     
     return transformer
+
+def generalTransformerBuild():
+    model =  build_stock_transformer(
+        Config["src_features"],
+        Config["tgt_features"],
+        Config["prev_days"],
+        Config["post_days"],
+        modelConfig["d_model"],
+        modelConfig["encoder_numbers"],
+        modelConfig["decoder_numbers"],
+        modelConfig["heads"],
+        modelConfig["d_ff"])
+    model_file_path = os.path.join(Config["general_transformer_model_folder"], f"{Config['generalTransformerName']}.pth")
+    if os.path.exists(model_file_path): 
+        model.load_state_dict(torch.load(model_file_path))
+        print ("general model loaded")
+    model.cuda()
+
+    return model

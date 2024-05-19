@@ -3,23 +3,20 @@ import config
 import json
 import os
 import torch
-from torch.utils.data import DataLoader, Dataset, random_split, Subset
+from torch.utils.data import DataLoader, Dataset, random_split, Subset,ConcatDataset
 import pandas as pd
 import numpy as np
 from pprint import pprint
 import re
+import random
 
 #Global Configs
 Config = config.get_config()
 akConfig = config.get_ak_config()
+modelConfig = config.get_transformer_model_config()
 
 #make folders if folders don't exist
-def makeFolders():
-    if not os.path.exists(akConfig["stockFolder"]):
-        os.makedirs(akConfig["stockFolder"])
-    if not os.path.exists(akConfig["generalFolder"]):
-        os.makedirs(akConfig["generalFolder"])
-makeFolders()
+
 
 #get stock name to symbol, symbol to name dicts into json
 def getAkDicts():
@@ -73,15 +70,27 @@ def getSpecStockCSV():
 
 class SpecStockData(Dataset):
 
-    def __init__(self):
-        csv_file_path = os.path.join(akConfig["stockFolder"], f"{akConfig['specific_stock_name']}.csv")
+    def __init__(self, stock_file_path = akConfig["specific_stock_name"], allMode = False):
+        self.stock_file_path = stock_file_path.replace('.csv', '')
+        self.initialized = False
 
-        if not os.path.exists(csv_file_path):
-            getSpecStockCSV()
-            print ("not exist file, creating csv")
+        
 
-        self.data = pd.read_csv(csv_file_path, encoding='ISO-8859-1')
-
+        #all mode. gets file from generalData folder
+        if (allMode == True):
+            csv_file_path = os.path.join(akConfig["generalFolder"],f"{self.stock_file_path}.csv")
+        else:
+            #specific mode. if file does not exist, creates file in dailyStock folder
+            csv_file_path = os.path.join(akConfig["stockFolder"], f"{self.stock_file_path}.csv")
+            if not os.path.exists(csv_file_path):
+                getSpecStockCSV()
+                print ("not exist file, creating csv")
+        try:
+            self.data = pd.read_csv(csv_file_path, encoding='ISO-8859-1')
+            self.initialized = True
+        except Exception as e:
+            return
+        
         self.inputs = []
         self.outputs = []
 
@@ -119,6 +128,9 @@ class SpecStockData(Dataset):
             # (i, post, 2)
             self.inputs.append(input_prev_days)
             self.outputs.append(output_post_days)
+        
+
+
 
     def __len__(self):
         return len(self.inputs)
@@ -162,3 +174,66 @@ def getAllStocksCSV():
     for stock in stockNames:
         print (f"getting stock to csv {stock}")
         specificStockCSV(stock)
+
+# returns a dataset of all stocks
+# if exists, loads. if not, creates
+
+def getAllStockDataset():
+    count = 0
+    for filename in os.listdir(akConfig["generalFolder"]):
+        assert(filename.endswith('.csv'))
+        tempDataset = SpecStockData(filename,True)
+
+        savePath = os.path.join(akConfig["allStockDataset"],f"{filename.replace(".csv","")}.pth")
+
+        #if csv file is empty, do not save the dataset
+        if tempDataset.initialized == True: torch.save(tempDataset, savePath)
+        print (f"{count}saving file{filename} dataset")
+        count +=1
+
+
+#dataloader, generates batchDATA (about 50) random numbers from 5600 numbers
+
+#make a json file mapping number to .pth files
+def loadDatasetDict():
+
+    def getDatasetJson ():
+        count = 0
+        DatasetDict = {}
+        for filename in os.listdir(akConfig["allStockDataset"]):
+            DatasetDict[count] = filename
+            count +=1
+        with open (akConfig["idx_to_dataset"],'w',encoding='utf-8') as f:
+            json.dump (DatasetDict, f ,ensure_ascii=False,indent=4)
+    
+    try:
+        with open(akConfig["idx_to_dataset"], 'r', encoding='utf-8') as f:
+            resultDict = json.load(f)
+    except FileNotFoundError:
+        print("idx_to_dataset.json file not found. Fetching and saving data...")
+        getDatasetJson()
+        with open(akConfig["idx_to_dataset"], 'r', encoding='utf-8') as f:
+            resultDict = json.load(f)
+    return resultDict
+
+# returns a dataloader generated from concatenated dataset
+# random number generator generates the pth files to use
+def randomDatasetPicker () ->DataLoader:
+    dict = loadDatasetDict()
+    numbers_list = list(range(len(dict)))
+    id_choices = random.sample(numbers_list,modelConfig["dataset_number"])
+    dataset_list = []
+    dataset_names = [dict[str(i)] for i in id_choices]
+
+    for name in dataset_names:
+        file_path = os.path.join(akConfig["allStockDataset"],name)
+        dataset = torch.load(file_path)
+        dataset_list.append(dataset)
+    combined_dataset = ConcatDataset(dataset_list)
+    
+    train_loader = DataLoader(combined_dataset, batch_size=modelConfig["batch_size"], shuffle=True)
+    return train_loader
+
+# those pth file gets concat into one dataset
+# then train on that one dataset for EPOCH numbers
+# repeat this for trainIter amount of times

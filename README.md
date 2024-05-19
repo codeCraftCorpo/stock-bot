@@ -1,4 +1,4 @@
-"# stock-bot" <br/>
+stock-bot <br/>
 automatic stock trading bot on chinese market. i dont expect it to work that well. mainly for practice<br/>
 
 uses akshare to get data. includes various models.<br/>

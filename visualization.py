@@ -1,7 +1,7 @@
 import config
 import os
 import pandas as pd
-from model import build_stock_transformer
+from model import build_stock_transformer, generalTransformerBuild
 from akshares_getdata import SpecStockData
 from torch.utils.data import DataLoader
 import torch
@@ -19,8 +19,6 @@ akConfig = config.get_ak_config()
 Config = config.get_config()
 vConfig = config.get_visual_config()
 
-if not os.path.exists(vConfig["visualFolder"]):
-    os.makedirs(vConfig["visualFolder"])
 
 writeFilePath = os.path.join(vConfig["visualFolder"],f"{akConfig["specific_stock_name"]}.csv")
 model_file_path = os.path.join(Config["transformer_model_folder"], f"{akConfig['specific_stock_name']}.pth")
@@ -29,13 +27,18 @@ model_file_path = os.path.join(Config["transformer_model_folder"], f"{akConfig['
 # PRED open, PRED close, Actual open, Actual close
 # 0          1           2            3
 
-def writePredCsv():
+def writePredCsv(general = False):
     #get dataloader and set up model
     data = SpecStockData()
     loader = DataLoader(data, 1, shuffle=False)
 
-    model = build_stock_transformer(Config["src_features"],Config["tgt_features"],Config["prev_days"],Config["post_days"],Config["d_model"])
-    if os.path.exists(model_file_path): model.load_state_dict(torch.load(model_file_path))
+    if (general == False):
+        model = build_stock_transformer(Config["src_features"],Config["tgt_features"],Config["prev_days"],Config["post_days"],Config["d_model"])
+        if os.path.exists(model_file_path): model.load_state_dict(torch.load(model_file_path))
+    else:
+        model = generalTransformerBuild()
+
+
     model.cuda()
     model.eval()
 
@@ -66,7 +69,8 @@ def writePredCsv():
 
 # visualize with pyglet
 #THIS VISUALIZES PREDICTION ON TRAIN SET, NOT JUST TEST SET
-def visualize():
+def visualize(general = False):
+    writePredCsv (general)
     data = pd.read_csv(writeFilePath)
     actual_open = data.iloc[:, 0].values
     pred_open = data.iloc[:, 2].values

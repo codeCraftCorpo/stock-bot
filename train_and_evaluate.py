@@ -12,23 +12,28 @@ import os
 
 Config = config.get_config()
 akConfig = config.get_ak_config()
+modelConfig = config.get_transformer_model_config()
 
-def makeFolders():
-    if not os.path.exists(Config["transformer_model_folder"]):
-        os.makedirs(Config["transformer_model_folder"])
 
-def trainModel (train_loader,model):
-    makeFolders()
-
-    model_file_path = os.path.join(Config["transformer_model_folder"], f"{akConfig['specific_stock_name']}.pth")
+def trainModel (train_loader,model, general = False):
+    
+    if (general == False):
+        model_file_path = os.path.join(Config["transformer_model_folder"], f"{akConfig['specific_stock_name']}.pth")
+    else:
+        model_file_path = os.path.join(Config["general_transformer_model_folder"], f"{Config['generalTransformerName']}.pth")
 
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=Config["lr"])
 
+
     if os.path.exists(model_file_path): model.load_state_dict(torch.load(model_file_path))
 
-
-    for epoch in range(Config["num_epochs"]): 
+    if (general==False):
+        epochs = Config["num_epochs"]
+    else:
+        epochs = modelConfig["epochs"]
+    
+    for epoch in range(epochs): 
         model.train()
         for inputs, targets in train_loader:
             inputs, targets = inputs.cuda(), targets.cuda()
@@ -46,6 +51,9 @@ def trainModel (train_loader,model):
         
         if (epoch) % 20 == 0:
             torch.save(model.state_dict(), model_file_path)
+        # save every epoch is general = true
+        if (general == True):
+            torch.save(model.state_dict(), model_file_path)
 
         print(f"Epoch {epoch+1}, Loss: {loss.item()}")
 
@@ -53,7 +61,6 @@ def trainModel (train_loader,model):
 
 def evaluateModel (test_loader,model):
 
-    makeFolders()
 
     model_file_path = os.path.join(Config["transformer_model_folder"], f"{akConfig['specific_stock_name']}.pth")
 
