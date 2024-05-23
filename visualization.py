@@ -1,4 +1,4 @@
-import config
+from config import getConfigs
 import os
 import pandas as pd
 from model import build_stock_transformer, generalTransformerBuild
@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 import torch
 import numpy as np
 from pprint import pprint
+import model
 import pyglet
 from OpenGL.GL import *
 from OpenGL.GLUT import *
@@ -14,30 +15,19 @@ from OpenGL.GLU import *
 
 
 
+
 #get configs, make folder, get read and write file paths
-akConfig = config.get_ak_config()
-Config = config.get_config()
-vConfig = config.get_visual_config()
+ak_config, transformer_config = getConfigs()
 
-
-writeFilePath = os.path.join(vConfig["visualFolder"],f"{akConfig["specific_stock_name"]}.csv")
-model_file_path = os.path.join(Config["transformer_model_folder"], f"{akConfig['specific_stock_name']}.pth")
-
-# save predicted prices of a specific stock to csv
+# save predicted prices of specific stock to csv
 # PRED open, PRED close, Actual open, Actual close
 # 0          1           2            3
 
-def writePredCsv(general = False):
+def writePredCsv(eval_folder: str, stock_name:str,  model: model, pred_folder:str, model_config: dict):
+
     #get dataloader and set up model
-    data = SpecStockData()
-    loader = DataLoader(data, 1, shuffle=False)
-
-    if (general == False):
-        model = build_stock_transformer(Config["src_features"],Config["tgt_features"],Config["prev_days"],Config["post_days"],Config["d_model"])
-        if os.path.exists(model_file_path): model.load_state_dict(torch.load(model_file_path))
-    else:
-        model = generalTransformerBuild()
-
+    dataset = SpecStockData(stock_name = stock_name, csv_folder_path = eval_folder, model_config = model_config)
+    loader = DataLoader(dataset, 1, shuffle=False)
 
     model.cuda()
     model.eval()
@@ -50,7 +40,7 @@ def writePredCsv(general = False):
         for inputs, targets in loader:
             inputs, targets = inputs.cuda(), targets.cuda()
 
-            tgt_mask = torch.triu(torch.ones(Config["post_days"], Config["post_days"], device=inputs.device, dtype=torch.bool))
+            tgt_mask = torch.triu(torch.ones(model_config["post_days"], model_config["post_days"], device=inputs.device, dtype=torch.bool))
             x = model.encode(inputs,None)
             x = model.decode(x,None,targets,tgt_mask)
             result = model.project(x)
@@ -64,14 +54,17 @@ def writePredCsv(general = False):
     actual_np = actual.cpu().numpy()
     combined = np.hstack((actual_np, pred_np))
     df = pd.DataFrame(combined, columns=["actual open", "actual close", "pred open", "pred close"])
-    df.to_csv(writeFilePath, index=False)
+    write_file_path = os.path.join(pred_folder,f"{stock_name}.csv")
+    df.to_csv(write_file_path, index=False)
+
 
 
 # visualize with pyglet
 #THIS VISUALIZES PREDICTION ON TRAIN SET, NOT JUST TEST SET
-def visualize(general = False):
-    writePredCsv (general)
-    data = pd.read_csv(writeFilePath)
+def visualize(eval_folder: str, stock_name:str,  model: model, pred_folder:str, model_config: dict):
+    writePredCsv (eval_folder = eval_folder , stock_name = stock_name,  model = model, pred_folder = pred_folder, model_config = model_config)
+    write_file_path = os.path.join(pred_folder,f"{stock_name}.csv")
+    data = pd.read_csv(write_file_path)
     actual_open = data.iloc[:, 0].values
     pred_open = data.iloc[:, 2].values
     time_index = 0  # Starting time index

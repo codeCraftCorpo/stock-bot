@@ -1,41 +1,54 @@
-import config
+from config import getConfigs
 import akshares_getdata
-from akshares_getdata import getAkDataLoader, randomDatasetPicker
+from akshares_getdata import get_csv_dataset_dataloader
 from model import generalTransformerBuild
-from train_and_evaluate import trainModel,evaluateModel
+from train_and_evaluate import trainMultipleDatsets,evaluateMultipleDatsets
 from visualization import writePredCsv, visualize
 from pprint import pprint
 import os
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-Config = config.get_config()
-
-akConfig = config.get_ak_config()
-
-modelConfig = config.get_transformer_model_config()
-
 '''
-# specific stock model code
-train_loader, test_loader = getAkDataLoader()
+#initilizing code, if never been run before
 
-model = build_stock_transformer(Config["src_features"],Config["tgt_features"],Config["prev_days"],Config["post_days"],Config["d_model"]).cuda()
+get_csv_dataset_dataloader(csv_folder_path = ak_config["all_stock_data"], dataset_folder_path= ak_config["all_stock_dataset"],
+                               data_start = ak_config["date_start"], data_end = ak_config["date_end"],
+                               model_config = transformer_config, shuffle = True,
+                               create_csv = True, create_dataset = True, create_loader = False
+                               )
 
-trainModel(train_loader,model)
-
-evaluateModel(test_loader,model)
-
-writePredCsv()
-
-visualize()
+get_csv_dataset_dataloader(csv_folder_path = ak_config["eval_all_stock_data"], dataset_folder_path= ak_config["eval_all_stock_dataset"],
+                               data_start = ak_config["eval_data_start"], data_end = ak_config["eval_data_end"],
+                               model_config = transformer_config, shuffle = True,
+                               create_csv = True, create_dataset = True, create_loader = False
+                               )
 '''
 
 '''
+# training code
+trainMultipleDatsets(model = model, model_config = transformer_config, dataset_epoch= transformer_config["dataset_epoch"],
+                         dataset_folder = ak_config["all_stock_dataset"], dataset_number = transformer_config["dataset_number"],
+                         batch_size = transformer_config["batch_size"], shuffle = True)
+
+'''
+
+'''
+#evaluation code
+evaluateMultipleDatsets(model = model, model_config = transformer_config, dataset_epoch= transformer_config["dataset_epoch"],
+                         dataset_folder = ak_config["eval_all_stock_dataset"], dataset_number = transformer_config["dataset_number"],
+                         batch_size = transformer_config["batch_size"], shuffle = True)
+
+'''
+
+'''
+#visualization code
+visualize(eval_folder = ak_config["eval_all_stock_data"], stock_name = ak_config["specific_stock_name"],  model= model, 
+          pred_folder = ak_config["pred_all_stock_folder"], model_config = transformer_config)
+'''
+ak_config,transformer_config = getConfigs()
+
 model = generalTransformerBuild()
 
-for i in range (modelConfig["pickDatasetEpoch"]):
-    print (f"dataset picked {i}")
-    loader = randomDatasetPicker()
-    trainModel(loader,model,True)
-'''
-visualize(True)
+visualize(eval_folder = ak_config["eval_all_stock_data"], stock_name = ak_config["specific_stock_name"],  model= model, 
+          pred_folder = ak_config["pred_all_stock_folder"], model_config = transformer_config)

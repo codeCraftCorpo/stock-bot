@@ -2,12 +2,11 @@ import torch
 import torch.nn as nn
 import math
 import inspect
-import config
+from config import getConfigs
 import os
 #CODE FROM https://github.com/hkproj/pytorch-transformer
 
-Config = config.get_config()
-modelConfig = config.get_transformer_model_config()
+akConfig,transformerConfig = getConfigs()
 
 class LayerNormalization(nn.Module):
 
@@ -353,19 +352,18 @@ def build_stock_transformer(src_features:int ,tgt_features:int, src_seq_len: int
 
 def generalTransformerBuild():
     model =  build_stock_transformer(
-        Config["src_features"],
-        Config["tgt_features"],
-        Config["prev_days"],
-        Config["post_days"],
-        modelConfig["d_model"],
-        modelConfig["encoder_numbers"],
-        modelConfig["decoder_numbers"],
-        modelConfig["heads"],
-        modelConfig["d_ff"])
-    model_file_path = os.path.join(Config["general_transformer_model_folder"], f"{Config['generalTransformerName']}.pth")
+        transformerConfig["src_features"],
+        transformerConfig["tgt_features"],
+        transformerConfig["prev_days"],
+        transformerConfig["post_days"],
+        transformerConfig["d_model"],
+        transformerConfig["encoder_numbers"],
+        transformerConfig["decoder_numbers"],
+        transformerConfig["heads"],
+        transformerConfig["d_ff"])
+    model_file_path = os.path.join(transformerConfig["model_folder"], f"{transformerConfig['model_name']}.pth")
     if os.path.exists(model_file_path): 
         model.load_state_dict(torch.load(model_file_path))
-        print ("general model loaded")
+        print ("transformer model loaded")
     model.cuda()
-
     return model
