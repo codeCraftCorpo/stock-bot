@@ -1,6 +1,5 @@
 import model
 from config import getConfigs
-from model import Encoder,Decoder,InputEmbeddings,PositionalEncoding,ProjectionLayer,FeedForwardBlock, build_stock_transformer
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -31,11 +30,7 @@ def trainModel (trainloader :DataLoader ,model: model, model_config: dict):
             inputs, targets = inputs.cuda(), targets.cuda()
             optimizer.zero_grad()   
 
-            tgt_mask = torch.triu(torch.ones(model_config["post_days"], model_config["post_days"], device=inputs.device, dtype=torch.bool))
-
-            x = model.encode(inputs,None)
-            x = model.decode(x,None,targets,tgt_mask)
-            x = model.project(x)
+            x = model(x)
 
             loss = criterion(x, targets)
             loss.backward()
@@ -62,14 +57,12 @@ def evaluateModel (evalloader :DataLoader ,model: model, model_config: dict):
         for inputs, targets in evalloader:
             inputs, targets = inputs.cuda(), targets.cuda()
 
-            tgt_mask = torch.triu(torch.ones(model_config["post_days"], model_config["post_days"], device=inputs.device, dtype=torch.bool))
             criterion = nn.MSELoss()
-            x = model.encode(inputs,None)
-            x = model.decode(x,None,targets,tgt_mask)
-            x = model.project(x)
 
-            
+            x = model(inputs)
+
             loss = criterion(x, targets)
+
             total_loss += loss.item()
             count += 1
 

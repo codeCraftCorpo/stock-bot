@@ -1,7 +1,6 @@
 from config import getConfigs
 import os
 import pandas as pd
-from model import build_stock_transformer, generalTransformerBuild
 from akshares_getdata import SpecStockData
 from torch.utils.data import DataLoader
 import torch
@@ -36,16 +35,13 @@ def writePredCsv(eval_folder: str, stock_name:str,  model: model, pred_folder:st
     #gets prediction, actual data into a tensor
     pred = torch.tensor([], dtype=torch.float32).cuda()
     actual = torch.tensor([], dtype = torch.float32).cuda()
+
     with torch.no_grad():
         for inputs, targets in loader:
             inputs, targets = inputs.cuda(), targets.cuda()
-
-            tgt_mask = torch.triu(torch.ones(model_config["post_days"], model_config["post_days"], device=inputs.device, dtype=torch.bool))
-            x = model.encode(inputs,None)
-            x = model.decode(x,None,targets,tgt_mask)
-            result = model.project(x)
-
-            pred = torch.cat((pred,result[0]), dim = 0)
+            
+            x = model (inputs)
+            pred = torch.cat((pred,x[0]), dim = 0)
             actual = torch.cat((actual,targets[0]),dim = 0)
 
     #write to csv

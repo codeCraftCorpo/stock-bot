@@ -1,13 +1,12 @@
 from pathlib import Path
 import os
-
+import torch
 #standardize this format across all models
 def get_transformer_model_config():
     return {
         #data
         "prev_days": 90,
-        # Actual predicted days is one less than post days, since one day is used as SOS token :(
-        "post_days": 11,
+        "post_days": 5,
 
         #model
         "src_features":10,
@@ -16,9 +15,10 @@ def get_transformer_model_config():
         "d_model":64,
         "heads":8,
         "d_ff" : 128,
+        "dropout" : 0.1,
 
-        "encoder_numbers": 6,
-        "decoder_numbers": 6,
+        #encoder and decoder numbers
+        "N": 6,
 
         #training
         "dataset_epoch": 100,
@@ -30,6 +30,9 @@ def get_transformer_model_config():
         #folders and names
         "model_folder":"./model_weights/transformer",
         "model_name":"transformer_model",
+
+        #Sos token, shape (1, tgt_feature)
+        "sosToken" : torch.full((1, 2), -1)
     }
 
 #static config. can create at the beginning of file
@@ -37,7 +40,7 @@ def get_ak_config():
 
     return {
         #specific stock
-        "specific_stock_name":"香江控股",
+        "specific_stock_name":"龙净环保",
 
         #dictionaries for symbol name conversion
         "symbol_to_name":'./akshare_data/symbol_to_name.json',
