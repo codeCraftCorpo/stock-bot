@@ -1,6 +1,8 @@
 from pathlib import Path
 import os
 import torch
+
+
 #standardize this format across all models
 def get_transformer_model_config():
     return {
@@ -32,7 +34,7 @@ def get_transformer_model_config():
         "model_name":"transformer_model",
 
         #Sos token, shape (1, tgt_feature)
-        "sosToken" : torch.full((1, 2), -1)
+        "sosToken" : torch.full((1, 2), -1, dtype=torch.float).cuda()
     }
 
 #static config. can create at the beginning of file

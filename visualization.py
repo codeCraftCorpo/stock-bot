@@ -40,7 +40,7 @@ def writePredCsv(eval_folder: str, stock_name:str,  model: model, pred_folder:st
         for inputs, targets in loader:
             inputs, targets = inputs.cuda(), targets.cuda()
             
-            x = model (inputs)
+            x = model(inputs,model_config["sosToken"],model_config["post_days"])
             pred = torch.cat((pred,x[0]), dim = 0)
             actual = torch.cat((actual,targets[0]),dim = 0)
 

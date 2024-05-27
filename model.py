@@ -20,7 +20,7 @@ class FeedForwardBlock(nn.Module):
 
     def forward(self,x):
         x = self.linear_1(x)
-        x = nn.ReLU(x)
+        x = torch.relu(x)
         x = self.linear_2(x)
         return self.dropout(x)
 
@@ -117,9 +117,9 @@ class MultiHeadAttentionBlock (nn.Module):
         k = self.key(k)
         v = self.value(v)
         # (batch, seq_len, d_model) --> (batch, seq_len, head, d_k) --> (batch,head, seq_len, d_k) 
-        q = q.view(q,q.shape[0],q.shape[1],self.num_heads,self.d_k).transpose(1,2)
-        k = k.view(k,k.shape[0],k.shape[1],self.num_heads,self.d_k).transpose(1,2)
-        v = v.view(v,v.shape[0],v.shape[1],self.num_heads,self.d_k).transpose(1,2)
+        q = q.view(q.shape[0],q.shape[1],self.num_heads,self.d_k).transpose(1,2)
+        k = k.view(k.shape[0],k.shape[1],self.num_heads,self.d_k).transpose(1,2)
+        v = v.view(v.shape[0],v.shape[1],self.num_heads,self.d_k).transpose(1,2)
         attention_score, self.attention_visual = MultiHeadAttentionBlock.attention(q,k,v,mask)
         #(batch, heads, seq_len, d_k) --> (batch, seq_len, heads, d_k)
         x = attention_score.transpose(1,2).contiguous()
@@ -170,7 +170,7 @@ class DecoderBlock (nn.Module):
     def forward(self,x, encoder_output,src_mask,tgt_mask):
         x = self.layers[0](x,lambda x: self.self_attention_block(x,x,x,tgt_mask))
         x = self.layers[1](x, lambda x: self.cross_attention_block(x,encoder_output,encoder_output,src_mask))
-        x = self.layers[2](x,self.feed_forward_block(x))
+        x = self.layers[2](x,lambda x:self.feed_forward_block(x))
         return x
 
 #creates decoder from decoderBlocks, norm at the end
@@ -228,17 +228,22 @@ class Transformer(nn.Module):
         tgt = sosToken.repeat(src.shape[0],1,1)
         # (batch,src_seq_len,d_model)
         encoder_output = self.encoder(src,src_mask)
+
         for i in range (pred_seq_len):
             #(batch, i, 2) --> (batch,i,d_model)
+            
+
             tgt_embed = self.tgt_pos_embed(self.tgt_embed(tgt))
+
             # (batch,i,d_model) -->(batch,1 (last token), d_model) --> (batch, 1(last token), 2 (opening and closing))
             cur_pred = self.decoder(tgt_embed,encoder_output,src_mask,tgt_mask)
-            cur_pred = cur_pred[:,-1,:]
+            cur_pred = cur_pred[:,-1:,:]
             cur_pred = self.project(cur_pred)
             #(batch, i, 2) - > (batch, i+1, 2)
+
             tgt = torch.cat([tgt, cur_pred], dim = 1)
         # ignore src token
-        return tgt[:,1,:]
+        return tgt[:,1:,:]
 
 def build_transformer(src_feature: int, tgt_feature: int, src_seq_len: int, tgt_seq_len: int, 
                       d_model: int, N:int, h:int, d_ff: int, dropout: float=0.1) :

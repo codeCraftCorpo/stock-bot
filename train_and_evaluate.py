@@ -29,9 +29,7 @@ def trainModel (trainloader :DataLoader ,model: model, model_config: dict):
         for inputs, targets in trainloader:
             inputs, targets = inputs.cuda(), targets.cuda()
             optimizer.zero_grad()   
-
-            x = model(x)
-
+            x = model(inputs,model_config["sosToken"],model_config["post_days"])
             loss = criterion(x, targets)
             loss.backward()
             optimizer.step()
@@ -59,7 +57,7 @@ def evaluateModel (evalloader :DataLoader ,model: model, model_config: dict):
 
             criterion = nn.MSELoss()
 
-            x = model(inputs)
+            x = model(inputs,model_config["sosToken"],model_config["post_days"])
 
             loss = criterion(x, targets)
 
@@ -90,3 +88,4 @@ def evaluateMultipleDatsets(model: model, model_config: dict, dataset_epoch: int
         count += 1
     average_loss = total_loss/count
     print(f'total Loss: {average_loss:.4f}')
+    
