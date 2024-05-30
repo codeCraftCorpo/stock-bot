@@ -3,6 +3,7 @@ import torch.nn as nn
 import math
 import os
 from config import getConfigs
+from pprint import pprint
 
 #citation list:
 #https://github.com/hkproj/pytorch-transformer
@@ -38,6 +39,19 @@ class LayerNorm(nn.Module):
         x = (x-mean) / (std + self.eps)
         x = x * self.alpha + self.bias
         return x
+    
+
+#norms across input layer sequence length, returns normed input, mean, std, to get back to original size
+class InputNorm (nn.Module):
+    def __init__(self, eps = 10 **-6):
+        super().__init__()
+        self.eps = eps
+    def forward(self,x):
+        mean = x.mean (dim = 1, keepdims = True)
+        std = x.std(dim = 1, keepdims = True)
+        x = (x-mean) / (std + self.eps)
+        return x, mean, std
+
 
 #creates embeddings, multiplies by sqrt d_model
 # (batch, seq_len) --> (batch,seq_len,d_model)
@@ -205,14 +219,16 @@ class ProjectionLayer (nn.Module):
 #projection: uses each decoder output token to predict the next token, projects to vocab size
 #this does NOT use teacher forcing by default. Feeds in predicted output one by one, starting with SOS token
 class Transformer(nn.Module):
-    def __init__ (self,src_embed : ProjectionLayer, tgt_embed : ProjectionLayer ,
+    def __init__ (self,input_norm: InputNorm, src_embed : ProjectionLayer, tgt_embed : ProjectionLayer ,
                   src_pos_embed: PositionalEmbedding, tgt_pos_embed: PositionalEmbedding,
                   encoder: Encoder, decoder:Decoder,project:ProjectionLayer):
         super().__init__()
+        self.input_norm = input_norm
         self.src_embed = src_embed
         self.tgt_embed = tgt_embed
         self.src_pos_embed = src_pos_embed
         self.tgt_pos_embed = tgt_pos_embed
+
 
         self.encoder = encoder
         self.decoder = decoder
@@ -222,6 +238,9 @@ class Transformer(nn.Module):
     #sosToken in terms of stock data is a vector of (-1)s
     #mask masks all the special tokens. do NOT mask sosToken
     def forward(self,src, sosToken, pred_seq_len, src_mask = None,tgt_mask = None):
+
+        #(batch,seq_len, src_features) --> (batch,seq_len, src_features)
+        src,mean,std = self.input_norm(src)
 
         src = self.src_pos_embed(self.src_embed(src))
         #(1,2) --> (batch, 1,2)
@@ -243,11 +262,22 @@ class Transformer(nn.Module):
 
             tgt = torch.cat([tgt, cur_pred], dim = 1)
         # ignore src token
-        return tgt[:,1:,:]
+        tgt =  tgt[:,1:,:]
+
+
+        
+        #opening and closing prices, denorm
+        mean = mean [:,0:,0:2]
+        std = std [:,0:,0:2]
+        tgt = tgt* std + mean
+
+        return tgt
 
 def build_transformer(src_feature: int, tgt_feature: int, src_seq_len: int, tgt_seq_len: int, 
                       d_model: int, N:int, h:int, d_ff: int, dropout: float=0.1) :
     # Create the embedding layers
+    input_norm = InputNorm()
+
     src_embed = ProjectionLayer(src_feature,d_model)
     tgt_embed = ProjectionLayer(tgt_feature,d_model)
 
@@ -279,7 +309,7 @@ def build_transformer(src_feature: int, tgt_feature: int, src_seq_len: int, tgt_
     projection_layer = ProjectionLayer(d_model, tgt_feature)
     
     # Create the transformer
-    transformer = Transformer(src_embed, tgt_embed,src_pos, tgt_pos, encoder, decoder,projection_layer)
+    transformer = Transformer(input_norm, src_embed, tgt_embed,src_pos, tgt_pos, encoder, decoder,projection_layer)
     
     # Initialize the parameters
     for p in transformer.parameters():

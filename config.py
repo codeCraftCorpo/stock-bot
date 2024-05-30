@@ -23,7 +23,7 @@ def get_transformer_model_config():
         "N": 6,
 
         #training
-        "dataset_epoch": 100,
+        "dataset_epoch": 300,
         "dataset_number": 200,
         "batch_size" :128,
         "epochs" : 10,
@@ -42,7 +42,7 @@ def get_ak_config():
 
     return {
         #specific stock
-        "specific_stock_name":"龙净环保",
+        "specific_stock_name":"鼎龙股份",
 
         #dictionaries for symbol name conversion
         "symbol_to_name":'./akshare_data/symbol_to_name.json',
@@ -55,9 +55,6 @@ def get_ak_config():
 
         "eval_data_start" :"20200101",
         "eval_data_end" :"20220101",
-
-        #train test split
-        "train_test_split" : 0.7,
 
         #folders
         "all_stock_data":'./akshare_data/all_stock_data',
@@ -87,6 +84,4 @@ def makeFolders():
     os.makedirs(akConfig["eval_all_stock_dataset"],exist_ok=True)
     os.makedirs(akConfig["pred_all_stock_folder"],exist_ok=True)
 
-makeFolders()
-
-
+makeFolders()                                           

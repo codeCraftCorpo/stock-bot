@@ -24,6 +24,8 @@ def trainModel (trainloader :DataLoader ,model: model, model_config: dict):
 
     epochs = model_config["epochs"]
 
+    running_lost = 0.0
+
     for epoch in range(epochs): 
         model.train()
         for inputs, targets in trainloader:
@@ -34,9 +36,12 @@ def trainModel (trainloader :DataLoader ,model: model, model_config: dict):
             loss.backward()
             optimizer.step()
 
+            running_lost += loss.item()
+        
+        running_lost = running_lost/len(trainloader)/model_config["post_days"]
+        print(f"Epoch {epoch+1}, Loss: {running_lost}")
+    
         torch.save(model.state_dict(), model_file_path)
-
-        print(f"Epoch {epoch+1}, Loss: {loss.item()}")
 
     torch.save(model.state_dict(), model_file_path)
 
@@ -48,7 +53,7 @@ def evaluateModel (evalloader :DataLoader ,model: model, model_config: dict):
     if os.path.exists(model_file_path): model.load_state_dict(torch.load(model_file_path))
 
     model.eval()
-    total_loss = 0
+    running_loss = 0
 
     count = 0
     with torch.no_grad():
@@ -61,12 +66,11 @@ def evaluateModel (evalloader :DataLoader ,model: model, model_config: dict):
 
             loss = criterion(x, targets)
 
-            total_loss += loss.item()
-            count += 1
+            running_loss += loss.item()
 
-    average_loss = total_loss / count
-    print(f'databatch Loss: {average_loss:.4f}')
-    return average_loss
+    running_loss = running_loss / len(evalloader)/model_config["post_days"]
+    print(f'datasets batch Loss: {running_loss:.4f}')
+    return running_loss
 
 # train multiple datasets
 def trainMultipleDatsets(model: model, model_config: dict, dataset_epoch: int,
@@ -88,4 +92,3 @@ def evaluateMultipleDatsets(model: model, model_config: dict, dataset_epoch: int
         count += 1
     average_loss = total_loss/count
     print(f'total Loss: {average_loss:.4f}')
-    

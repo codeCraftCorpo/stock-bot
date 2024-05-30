@@ -68,7 +68,7 @@ def visualize(eval_folder: str, stock_name:str,  model: model, pred_folder:str, 
     # Constants
     WINDOW_WIDTH = 1600
     WINDOW_HEIGHT = 900
-    DAYS_STEP = 10
+    DAYS_STEP = 5
     VIEWPORT_DAYS = 50  # Number of days visible in the viewport
 
     # Pyglet Window

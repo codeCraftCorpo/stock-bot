@@ -43,4 +43,4 @@ def mainExecute (intialize = False, train = False, evaluate = False, visualizati
         visualize(eval_folder = ak_config["eval_all_stock_data"], stock_name = ak_config["specific_stock_name"],  model= model, 
           pred_folder = ak_config["pred_all_stock_folder"], model_config = transformer_config)
     
-mainExecute(train=True)
+mainExecute(evaluate=True)
